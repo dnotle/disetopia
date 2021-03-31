@@ -1,2 +1,2 @@
-# disetopia.github.io
+# disetopia
 A personal website
