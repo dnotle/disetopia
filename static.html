@@ -5,29 +5,48 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.6.1/css/ol.css" type="text/css">
     <style>
-	* {
-		box-sizing: border-box;
-	}
-	html{
-        height: 100%;
-        width: 100%;
-		margin: 0;
-		font-size: 100%;
-	}
-	body{
-        height: 100%;
-        width: 100%;
-		margin: 0;		
-	}
+* {
+	box-sizing: border-box;
+}
+html {
+	position:absolute;
+	top:0;
+	bottom:0;
+	left:0;
+	right:0;
+	overflow: hidden;
+}
+
+body {
+	position:absolute;
+	top:0;
+	bottom:0;
+	left:0;
+	right:0;
+	margin:0;
+	overflow: hidden;
+}	
     .map {
         height: 100%;
         width: 100%;
 		background-color:#111;
      }
-	.popup{
 
 	}
-	 
+.hidden{
+	visibility:hidden;
+}
+p{
+	margin-left:1px;
+  white-space: nowrap; 
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+p:hover {
+  overflow: visible;
+  white-space: normal;
+}
     </style>
     <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.6.1/build/ol.js"></script>
     <title>Static</title>
@@ -37,6 +56,10 @@
 	<!--<div id="popup" title="Welcome to OpenLayers"></div>-->
     <script type="text/javascript">
 
+		document.querySelector("a").addEventListener("click", function(e) {
+		  e.stopPropagation();
+		});
+		
 		var extents = []
 
 		const extent0 = [445,-276.000017166139,717.64001083374,155.999999999999];
@@ -105,39 +128,87 @@
 			target: 'map',
 			view: new ol.View({
 				projection: projection,
-				center: ol.extent.getCenter(extent),
-				zoom: 1,
+				//center: ol.extent.getCenter(extent),
+				center: [0,0],
+				zoom:0,
 				maxZoom: 8,
 				minZoom:-10
 			}),
 		});
-		map.getView().fit(extent)
+		//map.getView().fit(extent)
 		
 		var currRes = map.getView().getResolution();
 		var div = document.createElement("div");
 		div.id = "dob026";
 		div.className = "popup"
 		div.style.width = (extent0[3]/currRes)-(extent0[1]/currRes)+"px"
+		//div.style.maxHeight = "50px";
 		div.style.height = "auto";
-		div.style.background = "#666";
+		div.style.background = "#444";
 		div.style.color = "white";
-		div.style.fontSize = (currRes/3)+"em"
-		//div.style.padding = (0.03/currRes)+"px"
-		//div.style.position = "relative"
-		//div.style.top = (-40/currRes)+"px"
-		div.innerHTML = "<p style='font-size:1em'>Hello<a href='https://en.wikipedia.org/wiki/Main_Page'>Wikipedia</a>that Spain's win in the UEFA Euro 2008 Final was the first of three successive major tournament victories?</p>";
+		div.style.fontSize = 0.85+"em",
+		div.style.overflow = "hidden",
+		div.style.whiteSpace = "nowrap";
+		div.style.textOverflow = "ellipsis";
+		div.style.padding = "1px";
+		//div.style.outline = "1px solid black";
+		div.innerHTML = "<p style='margin:1px; padding:'>Hello<a href='https://en.wikipedia.org/wiki/Main_Page'>Wikipedia</a>that <span>Spain's</span>win in the UEFA Euro 2008 Final was the first of three successive major tournament victories?</p>";
 		document.getElementsByTagName("body")[0].appendChild(div);
 
-		const divpixel = [extent1[0],extent1[1]+30];
 		const popup = new ol.Overlay({
+			id:"dob026",
 			element: document.getElementById("dob026"),
-			position: divpixel,//map.getCoordinateFromPixel(divpixel),
-			positioning: "top-left"
+			position: [extent1[0],extent1[1]],
+			positioning: "top-left"//,
+			//offset:[0,50]
+		});		
+		
+		var divpixel = [extent1[0],extent1[1]];
+		var origCoord
+			
+		map.once('postrender', function() {
+			map.addOverlay(popup);
+		});		
+						
+		map.getView().on('change:resolution', function (e) {
+			var w = (extent0[3]/currRes)-(extent0[1]/currRes);
+			var h = 100/currRes;
+		    var newRes = map.getView().getResolution();
+		    if (currRes != newRes) {
+				var r = (currRes/newRes)
+				var nw = (w * r)
+				var nh = (h * r)
+				var f = (currRes/3)*r
+				document.getElementById("dob026").style.width=nw+"px";
+				//document.getElementById("dob026").style.height=nh+"px";
+				//document.getElementById("dob026").style.fontSize=f+"em";
+				x = document.getElementsByClassName("popup")
+				Array.prototype.forEach.call(x, function (d) {
+					if(newRes > 2){
+						//d.style.display = "none"
+					} else {
+						//d.style.display = "block"
+					}				
+				});
+		    }
 		});
-		map.addOverlay(popup);
-
-
-
+		
+		/*var currZoom = map.getView().getZoom();
+		map.on('moveend', function (e) {
+		    var newZoom = map.getView().getZoom();
+		    if (currZoom != newZoom) {
+		        console.log('zoom end, new zoom: ' + newZoom);
+		        currZoom = newZoom;
+				x = document.getElementsByClassName("popup")
+				Array.prototype.forEach.call(x, function (d) {
+					if(newZoom < 0){
+						d.style.display = "none"
+					} else {
+						d.style.display = "block"
+					}				
+				});	    
+			}
+		});*/
 		map.on('pointermove', function (evt) {
 			if (evt.dragging) {
 				return;
@@ -155,24 +226,8 @@
 			map.forEachLayerAtPixel(e.pixel, function(lyr){
 				//console.log(lyr.getClassName())
 			})
-		});
+		});		
 		
-		
-		
-		map.getView().on('change:resolution', function (e) {
-			var w = (extent0[3]/currRes)-(extent0[1]/currRes);
-			var h = 100/currRes;
-		    var newRes = map.getView().getResolution();
-		    if (currRes != newRes) {
-				var r = (currRes/newRes)
-				var nw = (w * r)
-				var nh = (h * r)
-				var f = (currRes/3)*r
-				document.getElementById("dob026").style.width=nw+"px";
-				//document.getElementById("dob026").style.height=nh+"px";
-				document.getElementById("dob026").style.fontSize=f+"em";
-		    }
-		});
     </script>
   </body>
 </html>
